@@ -1,13 +1,10 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Net;
 using System.Threading.Tasks;
 using Training.XApi.Engine.Models.Members;
 using Training.XApi.Engine.Settings;
 using Training.XApi.Infrastructure.CQRS;
-using Training.XApi.Infrastructure.Exceptions;
 using Training.XApi.Infrastructure.Http;
-using Yokozuna.Logging.Extensions;
 
 namespace Training.XApi.Engine.Handlers.Queries.Members
 {
@@ -30,46 +27,29 @@ namespace Training.XApi.Engine.Handlers.Queries.Members
 
     internal class GetMemberQueryHandler : IQueryHandlerAsync<GetMemberQuery, MemberProfile>
     {
-
         private readonly IHttpClient _http;
-        private readonly ILogger _logger;
 
         private readonly string _memberApiUrl;
 
-        public GetMemberQueryHandler(ISettings settings, IHttpClient http, ILogger<GetMemberQueryHandler> logger)
+        public GetMemberQueryHandler(ISettings settings, IHttpClient http)
         {
             _http = http;
-            _logger = logger;
 
             _memberApiUrl = $"{settings.MemberApiUrl}";
         }
 
         public async Task<MemberProfile> HandleAsync(GetMemberQuery query)
         {
-            try
-            {
-                string url = $"{_memberApiUrl}/v2/members/{query.MemberId}/profile";
 
-                var request = HttpClientRequest.Get(url);
+            string url = $"{_memberApiUrl}/v2/members/{query.MemberId}/profile";
 
-                var response = await _http.ExecuteAsync<MemberProfile>(request);
+            var request = HttpClientRequest.Get(url);
 
-                if (response != null && response.StatusCode == HttpStatusCode.OK && response.Result != null)
-                {
-                    return response.Result;
-                }
-                else
-                {
-                    throw new ApiException(url, response.StatusCode, response.Body, response.IsTimeout, new LogTags().Add(query), $"Unable to get member data : {query.MemberId}");
-                }
-            }
-            catch (ApiException exception)
+            var response = await _http.ExecuteAsync<MemberProfile>(request);
+
+            if (response != null && response.StatusCode == HttpStatusCode.OK && response.Result != null)
             {
-                _logger.Error(exception, exception.LogTags, exception.Message);
-            }
-            catch (Exception exception)
-            {
-                _logger.Error(exception, new LogTags().Add(query), exception.Message);
+                return response.Result;
             }
 
             return null;

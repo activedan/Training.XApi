@@ -6,10 +6,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NLog.Web;
 using Swashbuckle.AspNetCore.Swagger;
 using System;
-using Yokozuna.AspNetCore.Logging.NLog.Extensions;
 
 namespace Training.XApi
 {
@@ -50,20 +48,13 @@ namespace Training.XApi
         {
             if (env.IsDevelopment())
             {
-                env.ConfigureNLog("NLog.config");
-
                 app.UseDeveloperExceptionPage();
             }
             else
             {
-                env.ConfigureNLog($"NLog.{env.EnvironmentName}.config");
-
                 app.UseExceptionHandler("/error");
             }
 
-            loggerFactory.UseYokozuna();
-
-            app.AddYokozuna();
 
             app.UseMvc();
 

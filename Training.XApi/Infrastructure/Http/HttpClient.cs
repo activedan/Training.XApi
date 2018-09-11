@@ -5,7 +5,6 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using Yokozuna.Logging.Extensions;
 
 namespace Training.XApi.Infrastructure.Http
 {
@@ -13,41 +12,26 @@ namespace Training.XApi.Infrastructure.Http
     {
         private IEnumerable<IHttpRequestSerialiser> _requestSerialisers;
         private IEnumerable<IHttpResponseSerialiser> _responseDeserialisers;
-        private ILogger _logger;
 
-        public HttpClient(IEnumerable<IHttpRequestSerialiser> requestSerialisers, IEnumerable<IHttpResponseSerialiser> responseDeserialisers, ILogger<HttpClient> logger)
+        public HttpClient(IEnumerable<IHttpRequestSerialiser> requestSerialisers, IEnumerable<IHttpResponseSerialiser> responseDeserialisers)
         {
             _requestSerialisers = requestSerialisers;
             _responseDeserialisers = responseDeserialisers;
-            _logger = logger;
         }
 
         public HttpClientResponse Execute(HttpClientRequest request)
         {
-            HttpWebRequest httpWebRequest =  GetHttpWebRequest(request);
+            HttpWebRequest httpWebRequest = GetHttpWebRequest(request);
             HttpClientResponse response = null;
 
-            try
+
+            HttpWebResponse httpWebResponse = Sync(httpWebRequest);
+
+            response = new HttpClientResponse(WebExceptionStatus.Success, httpWebResponse);
+
+            if (httpWebResponse != null)
             {
-                HttpWebResponse httpWebResponse =  Sync(httpWebRequest);
-
-                response = new HttpClientResponse(WebExceptionStatus.Success, httpWebResponse);
-
-                if (httpWebResponse != null)
-                {
-                    httpWebResponse.Dispose();
-                }
-
-            }
-            catch (WebException webException)
-            {
-                response = new HttpClientResponse(webException.Status);
-            }
-            catch (Exception exception)
-            {
-                 _logger.Error(exception, new LogTags().Add(request), "Unable to create web client response object");
-
-                response = new HttpClientResponse(WebExceptionStatus.UnknownError);
+                httpWebResponse.Dispose();
             }
 
             return response;
@@ -55,31 +39,17 @@ namespace Training.XApi.Infrastructure.Http
 
         public HttpClientResponse<T> Execute<T>(HttpClientRequest request)
         {
-            HttpWebRequest httpWebRequest =  GetHttpWebRequest(request);
+            HttpWebRequest httpWebRequest = GetHttpWebRequest(request);
             HttpClientResponse<T> response = null;
 
-            try
+            HttpWebResponse httpWebResponse = Sync(httpWebRequest);
+
+            response = new HttpClientResponse<T>(WebExceptionStatus.Success, httpWebResponse);
+            response.Result = GetResponseSerialiser(request.Accept).Deserialise<T>(response.Body);
+
+            if (httpWebResponse != null)
             {
-                HttpWebResponse httpWebResponse =  Sync(httpWebRequest);
-
-                response = new HttpClientResponse<T>(WebExceptionStatus.Success, httpWebResponse);
-                response.Result =  GetResponseSerialiser(request.Accept).Deserialise<T>(response.Body);
-
-                if (httpWebResponse != null)
-                {
-                    httpWebResponse.Dispose();
-                }
-
-            }
-            catch (WebException webException)
-            {
-                response = new HttpClientResponse<T>(webException.Status);
-            }
-            catch (Exception exception)
-            {
-                 _logger.Error(exception, new LogTags().Add(request), "Unable to create web client response object");
-
-                response = new HttpClientResponse<T>(WebExceptionStatus.UnknownError);
+                httpWebResponse.Dispose();
             }
 
             return response;
@@ -87,30 +57,16 @@ namespace Training.XApi.Infrastructure.Http
 
         public async Task<HttpClientResponse> ExecuteAsync(HttpClientRequest request)
         {
-            HttpWebRequest httpWebRequest =  GetHttpWebRequest(request);
+            HttpWebRequest httpWebRequest = GetHttpWebRequest(request);
             HttpClientResponse response = null;
 
-            try
+            HttpWebResponse httpWebResponse = await Async(httpWebRequest);
+
+            response = new HttpClientResponse(WebExceptionStatus.Success, httpWebResponse);
+
+            if (httpWebResponse != null)
             {
-                HttpWebResponse httpWebResponse = await  Async(httpWebRequest);
-
-                response = new HttpClientResponse(WebExceptionStatus.Success, httpWebResponse);
-
-                if (httpWebResponse != null)
-                {
-                    httpWebResponse.Dispose();
-                }
-
-            }
-            catch (WebException webException)
-            {
-                return new HttpClientResponse(webException.Status);
-            }
-            catch (Exception exception)
-            {
-                 _logger.Error(exception, new LogTags().Add(request), "Unable to create web client response object");
-
-                return new HttpClientResponse(WebExceptionStatus.UnknownError);
+                httpWebResponse.Dispose();
             }
 
             return response;
@@ -118,39 +74,21 @@ namespace Training.XApi.Infrastructure.Http
 
         public async Task<HttpClientResponse<T>> ExecuteAsync<T>(HttpClientRequest request)
         {
-            HttpWebRequest httpWebRequest =  GetHttpWebRequest(request);
+            HttpWebRequest httpWebRequest = GetHttpWebRequest(request);
             HttpClientResponse<T> response = null;
 
-            try
+            HttpWebResponse httpWebResponse = await Async(httpWebRequest);
+
+            response = new HttpClientResponse<T>(WebExceptionStatus.Success, httpWebResponse);
+            response.Result = GetResponseSerialiser(request.Accept).Deserialise<T>(response.Body);
+
+            if (httpWebResponse != null)
             {
-                HttpWebResponse httpWebResponse = await  Async(httpWebRequest);
-
-                response = new HttpClientResponse<T>(WebExceptionStatus.Success, httpWebResponse);
-                response.Result =  GetResponseSerialiser(request.Accept).Deserialise<T>(response.Body);
-
-                if (httpWebResponse != null)
-                {
-                    httpWebResponse.Dispose();
-                }
-
-            }
-            catch (WebException webException)
-            {
-                return new HttpClientResponse<T>(webException.Status);
-            }
-            catch (Exception exception)
-            {
-                 _logger.Error(exception, new LogTags().Add(request), "Unable to create web client response object");
-
-                return new HttpClientResponse<T>(WebExceptionStatus.UnknownError);
+                httpWebResponse.Dispose();
             }
 
             return response;
         }
-
-
-
-
 
         private async Task<HttpWebResponse> Async(HttpWebRequest httpWebRequest)
         {
@@ -165,7 +103,7 @@ namespace Training.XApi.Infrastructure.Http
                     throw;
                 }
 
-                return  HandleWebException(wex, httpWebRequest);
+                return HandleWebException(wex, httpWebRequest);
             }
         }
 
@@ -182,7 +120,7 @@ namespace Training.XApi.Infrastructure.Http
                     throw;
                 }
 
-                return  HandleWebException(wex, httpWebRequest);
+                return HandleWebException(wex, httpWebRequest);
             }
         }
 
@@ -194,16 +132,6 @@ namespace Training.XApi.Infrastructure.Http
             if (exception.Response != null)
             {
                 httpWebResponse = (HttpWebResponse)exception.Response;
-            }
-
-            if (responseStatus == WebExceptionStatus.Timeout)
-            {
-                 _logger.Error(exception, new LogTags().Add(request), "Timeout");
-            }
-
-            if (httpWebResponse != null && httpWebResponse.StatusCode == HttpStatusCode.InternalServerError)
-            {
-                 _logger.Error(exception, new LogTags().Add(request), "Internal Server Error");
             }
 
             return httpWebResponse;
@@ -256,7 +184,7 @@ namespace Training.XApi.Infrastructure.Http
                 }
                 else
                 {
-                    body = Encoding.UTF8.GetBytes( GetRequestSerialiser(request.ContentType).Serialise(request.Body));
+                    body = Encoding.UTF8.GetBytes(GetRequestSerialiser(request.ContentType).Serialise(request.Body));
                 }
 
                 httpWebRequest.ContentLength = body == null ? 0 : body.Length;
@@ -275,7 +203,7 @@ namespace Training.XApi.Infrastructure.Http
 
         private IHttpRequestSerialiser GetRequestSerialiser(string contentType)
         {
-            IHttpRequestSerialiser serialiser =  _requestSerialisers.FirstOrDefault(o => o.ContentType == contentType);
+            IHttpRequestSerialiser serialiser = _requestSerialisers.FirstOrDefault(o => o.ContentType == contentType);
 
             if (serialiser == null)
             {
@@ -287,7 +215,7 @@ namespace Training.XApi.Infrastructure.Http
 
         private IHttpResponseSerialiser GetResponseSerialiser(string acceptType)
         {
-            IHttpResponseSerialiser serialiser =  _responseDeserialisers.FirstOrDefault(o => o.AcceptType == acceptType);
+            IHttpResponseSerialiser serialiser = _responseDeserialisers.FirstOrDefault(o => o.AcceptType == acceptType);
 
             if (serialiser == null)
             {

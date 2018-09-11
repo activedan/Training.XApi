@@ -1,5 +1,4 @@
 ﻿using Training.XApi.Infrastructure.CQRS;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 using Training.XApi.Engine.Models.Adverts;
@@ -18,11 +17,8 @@ namespace Training.XApi.Engine.Handlers.Queries.Adverts
 
     internal class AdvertByIdQueryHandler : IQueryHandlerAsync<AdvertByIdQuery, Advert>
     {
-        private ILogger<AdvertByIdQueryHandler> _logger;
-
-        public AdvertByIdQueryHandler(ILogger<AdvertByIdQueryHandler> logger)
+        public AdvertByIdQueryHandler()
         {
-            _logger = logger;
         }
 
         public async Task<Advert> HandleAsync(AdvertByIdQuery query)
