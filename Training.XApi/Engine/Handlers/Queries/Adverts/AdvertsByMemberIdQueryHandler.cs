@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Training.XApi.Engine.Models.Adverts;
+using Training.XApi.Infrastructure.Http;
+using System.Net;
 
 namespace Training.XApi.Engine.Handlers.Queries.Adverts
 {
@@ -27,18 +29,31 @@ namespace Training.XApi.Engine.Handlers.Queries.Adverts
 
     internal class AdvertsByMemberIdQueryHandler : IQueryHandlerAsync<AdvertsByMemberIdQuery, IEnumerable<Advert>>
     {
-        private ILogger<AdvertsByMemberIdQueryHandler> _logger;
         private IQueryDispatcher _queryDispatcher;
+        private readonly IHttpClient _http;
 
-        public AdvertsByMemberIdQueryHandler(ILogger<AdvertsByMemberIdQueryHandler> logger, IQueryDispatcher queryDispatcher)
+        public AdvertsByMemberIdQueryHandler(IQueryDispatcher queryDispatcher, IHttpClient http)
         {
-            _logger = logger;
+            _http = http;
             _queryDispatcher = queryDispatcher;
         }
 
         public async Task<IEnumerable<Advert>> HandleAsync(AdvertsByMemberIdQuery query)
         {
-            return null;
+            IEnumerable<Advert> advert = new List<Advert>();
+
+            var url = string.Format("", query.MemberId);
+            var request = HttpClientRequest.Get(url);
+
+            var response = await _http.ExecuteAsync<List<Advert>>(request);
+
+            
+            if (response != null && response.StatusCode == HttpStatusCode.OK && response.Result != null)
+            {
+                advert = response.Result;
+            }
+
+            return advert;
         }
     }
 }

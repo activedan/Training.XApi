@@ -2,6 +2,7 @@
 using System;
 using System.Threading.Tasks;
 using Training.XApi.Engine.Handlers.Queries.Adverts;
+using Training.XApi.Engine.Handlers.Queries.Members;
 using Training.XApi.Engine.Settings;
 using Training.XApi.Infrastructure.CQRS;
 using Training.XApi.UiFactories.Desktop;
@@ -15,8 +16,7 @@ namespace Training.XApi.Controllers
         private IQueryDispatcher _queryDispatcher;
         private ISettings _apiSettings;
 
-        public AdvertListController(AdvertListUiFactory uiFactory, IQueryDispatcher queryDispatcher, ICommandDispatcher commandDispatcher,
-            ISettings apiSettings)
+        public AdvertListController(AdvertListUiFactory uiFactory, IQueryDispatcher queryDispatcher, ISettings apiSettings)
         {
             _apiSettings = apiSettings;
             _uiFactory = uiFactory;

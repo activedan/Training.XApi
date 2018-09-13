@@ -10,7 +10,7 @@ namespace Training.XApi.Infrastructure.Http
     {
         public Byte[] Bytes { get; private set; }
 
-        public HttpStatusCode? StatusCode { get; private set; }
+        public HttpStatusCode? StatusCode { get; set; }
 
         public string Body { get; private set; }
 

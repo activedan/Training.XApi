@@ -35,7 +35,7 @@ namespace Training.XApi.Engine.Handlers.Queries.Products
 
             HttpClientRequest request = HttpClientRequest.Get(url);
 
-            var response = _httpClient.Execute<Product>(request);
+            var response = await _httpClient.ExecuteAsync<Product>(request);
 
             if (response.StatusCode == System.Net.HttpStatusCode.OK)
             {

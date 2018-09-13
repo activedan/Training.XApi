@@ -9,8 +9,8 @@ namespace Training.XApi.Engine.Settings
     }
     public class Settings : ISettings
     {
-        public string ProductApiUrl => throw new NotImplementedException();
+        public string ProductApiUrl => "";
 
-        public string MemberApiUrl => throw new NotImplementedException();
+        public string MemberApiUrl => "";
     }
 }

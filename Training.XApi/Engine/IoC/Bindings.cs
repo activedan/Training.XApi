@@ -10,6 +10,7 @@ using Training.XApi.Engine.Models.Adverts;
 using Training.XApi.Engine.Handlers.Queries.Adverts;
 using Training.XApi.Engine.Handlers.Queries.Members;
 using Training.XApi.Engine.Models.Members;
+using Training.XApi.UiFactories.Desktop;
 
 namespace Training.XApi.Engine.IoC
 {
@@ -17,6 +18,8 @@ namespace Training.XApi.Engine.IoC
     {
         public static IServiceCollection RegisterEngine(this IServiceCollection services, IConfiguration config)
         {
+            services.AddTransient<AdvertListUiFactory>();
+
             services.AddSingleton<IQueryHandlerAsync<AdvertByIdQuery, Advert>, AdvertByIdQueryHandler>();
             services.AddSingleton<IQueryHandlerAsync<AdvertsByMemberIdQuery, IEnumerable<Advert>>, AdvertsByMemberIdQueryHandler>();
 

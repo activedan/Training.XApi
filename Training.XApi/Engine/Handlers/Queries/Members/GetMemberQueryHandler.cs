@@ -35,12 +35,11 @@ namespace Training.XApi.Engine.Handlers.Queries.Members
         {
             _http = http;
 
-            _memberApiUrl = $"{settings.MemberApiUrl}";
+            _memberApiUrl = settings.MemberApiUrl;
         }
 
         public async Task<MemberProfile> HandleAsync(GetMemberQuery query)
         {
-
             string url = $"{_memberApiUrl}/v2/members/{query.MemberId}/profile";
 
             var request = HttpClientRequest.Get(url);

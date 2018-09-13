@@ -1,228 +1,90 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
+using Training.XApi.Engine.Models.Adverts;
+using Training.XApi.Engine.Models.Members;
 
 namespace Training.XApi.Infrastructure.Http
 {
     public class HttpClient : IHttpClient
     {
-        private IEnumerable<IHttpRequestSerialiser> _requestSerialisers;
-        private IEnumerable<IHttpResponseSerialiser> _responseDeserialisers;
-
-        public HttpClient(IEnumerable<IHttpRequestSerialiser> requestSerialisers, IEnumerable<IHttpResponseSerialiser> responseDeserialisers)
+        public HttpClient()
         {
-            _requestSerialisers = requestSerialisers;
-            _responseDeserialisers = responseDeserialisers;
+            
         }
-
-        public HttpClientResponse Execute(HttpClientRequest request)
-        {
-            HttpWebRequest httpWebRequest = GetHttpWebRequest(request);
-            HttpClientResponse response = null;
-
-
-            HttpWebResponse httpWebResponse = Sync(httpWebRequest);
-
-            response = new HttpClientResponse(WebExceptionStatus.Success, httpWebResponse);
-
-            if (httpWebResponse != null)
-            {
-                httpWebResponse.Dispose();
-            }
-
-            return response;
-        }
-
-        public HttpClientResponse<T> Execute<T>(HttpClientRequest request)
-        {
-            HttpWebRequest httpWebRequest = GetHttpWebRequest(request);
-            HttpClientResponse<T> response = null;
-
-            HttpWebResponse httpWebResponse = Sync(httpWebRequest);
-
-            response = new HttpClientResponse<T>(WebExceptionStatus.Success, httpWebResponse);
-            response.Result = GetResponseSerialiser(request.Accept).Deserialise<T>(response.Body);
-
-            if (httpWebResponse != null)
-            {
-                httpWebResponse.Dispose();
-            }
-
-            return response;
-        }
-
-        public async Task<HttpClientResponse> ExecuteAsync(HttpClientRequest request)
-        {
-            HttpWebRequest httpWebRequest = GetHttpWebRequest(request);
-            HttpClientResponse response = null;
-
-            HttpWebResponse httpWebResponse = await Async(httpWebRequest);
-
-            response = new HttpClientResponse(WebExceptionStatus.Success, httpWebResponse);
-
-            if (httpWebResponse != null)
-            {
-                httpWebResponse.Dispose();
-            }
-
-            return response;
-        }
-
+        
         public async Task<HttpClientResponse<T>> ExecuteAsync<T>(HttpClientRequest request)
         {
-            HttpWebRequest httpWebRequest = GetHttpWebRequest(request);
-            HttpClientResponse<T> response = null;
+            HttpClientResponse<T> response = new HttpClientResponse<T>(WebExceptionStatus.Success);
+            response.StatusCode = HttpStatusCode.OK;
 
-            HttpWebResponse httpWebResponse = await Async(httpWebRequest);
+            Type requestType = typeof(T);
 
-            response = new HttpClientResponse<T>(WebExceptionStatus.Success, httpWebResponse);
-            response.Result = GetResponseSerialiser(request.Accept).Deserialise<T>(response.Body);
-
-            if (httpWebResponse != null)
+            if (requestType == typeof(List<Advert>))
             {
-                httpWebResponse.Dispose();
+                response.Result = (T)Convert.ChangeType(MockAdverts(), typeof(T));
+            }
+            else if (requestType == typeof(Advert))
+            {
+                response.Result = (T)Convert.ChangeType(MockAdvert(), typeof(T));
+            }
+            else if (requestType == typeof(MemberProfile))
+            {
+                response.Result = (T)Convert.ChangeType(MockProfile(), typeof(T));
             }
 
             return response;
         }
 
-        private async Task<HttpWebResponse> Async(HttpWebRequest httpWebRequest)
+        private List<Advert> MockAdverts()
         {
-            try
-            {
-                return (HttpWebResponse)await httpWebRequest.GetResponseAsync();
-            }
-            catch (WebException wex)
-            {
-                if (wex.Response == null || wex.Status != WebExceptionStatus.ProtocolError)
-                {
-                    throw;
-                }
+            var adverts = new List<Advert>();
 
-                return HandleWebException(wex, httpWebRequest);
-            }
+            adverts.Add(MockAdvert());
+
+            return adverts;
         }
 
-        private HttpWebResponse Sync(HttpWebRequest httpWebRequest)
+        private Advert MockAdvert()
         {
-            try
+            return new Advert()
             {
-                return (HttpWebResponse)httpWebRequest.GetResponse();
-            }
-            catch (WebException wex)
-            {
-                if (wex.Response == null || wex.Status != WebExceptionStatus.ProtocolError)
+                AdvertId = Guid.Parse("26be265c-aa6a-44b9-b210-e8b23cb3b427"),
+                AdvertReference = "SSE-AD-3519933",
+                Status = Engine.Enums.AdvertStatus.Approved,
+                DateFirstApproved = DateTime.Now.AddDays(-10),
+                DateCancelled = null,
+                DateCreated = DateTime.Now.AddDays(-11),
+                DateLastApproved = DateTime.Now.AddDays(-5),
+                MemberId = Guid.Parse("430d7a19-efd4-441c-88c3-00e30b260293"),
+                Vertical = Engine.Enums.Vertical.Car,
+                Title = "2009 Holden Commodore",
+                Subtitle = "VE SS V Sportwagon 5dr Man 6sp 6.0i [MY09.5]",
+                EditingData = new AdvertData()
                 {
-                    throw;
+                    SpecId = "232169"
+                },
+                LiveData = new AdvertData()
+                {
+                    SpecId = "232169"
                 }
-
-                return HandleWebException(wex, httpWebRequest);
-            }
+            };
         }
 
-        private HttpWebResponse HandleWebException(WebException exception, HttpWebRequest request)
+        private MemberProfile MockProfile()
         {
-            HttpWebResponse httpWebResponse = null;
-            WebExceptionStatus responseStatus = exception.Status;
-
-            if (exception.Response != null)
+            return new MemberProfile()
             {
-                httpWebResponse = (HttpWebResponse)exception.Response;
-            }
-
-            return httpWebResponse;
-        }
-
-
-
-        private HttpWebRequest GetHttpWebRequest(HttpClientRequest request)
-        {
-            HttpWebRequest httpWebRequest = (HttpWebRequest)WebRequest.Create(request.Url);
-
-            httpWebRequest.Method = request.Method;
-            httpWebRequest.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
-            httpWebRequest.Timeout = request.TimeoutInMS ?? 1000;
-
-            httpWebRequest.AllowAutoRedirect = request.FollowRedirects;
-
-            if (!string.IsNullOrWhiteSpace(request.Accept))
-            {
-                httpWebRequest.Accept = request.Accept;
-            }
-
-            foreach (var header in request.Headers)
-            {
-                httpWebRequest.Headers.Set(header.Key, header.Value);
-            }
-
-            if (!string.IsNullOrWhiteSpace(request.ContentType) && request.Method.ToLower() != "get")
-            {
-                httpWebRequest.ContentType = request.ContentType;
-            }
-
-            if (!string.IsNullOrWhiteSpace(request.UserAgent))
-            {
-                httpWebRequest.UserAgent = request.UserAgent;
-            }
-
-            if (request.Cookies != null)
-            {
-                httpWebRequest.CookieContainer = request.Cookies;
-            }
-
-            if (request.Body != null)
-            {
-                byte[] body;
-
-                if (request.Body is byte[])
-                {
-                    body = request.Body as byte[];
-                }
-                else
-                {
-                    body = Encoding.UTF8.GetBytes(GetRequestSerialiser(request.ContentType).Serialise(request.Body));
-                }
-
-                httpWebRequest.ContentLength = body == null ? 0 : body.Length;
-
-                if (body != null)
-                {
-                    using (var rs = httpWebRequest.GetRequestStream())
-                    {
-                        rs.Write(body, 0, body.Length);
-                    }
-                }
-            }
-
-            return httpWebRequest;
-        }
-
-        private IHttpRequestSerialiser GetRequestSerialiser(string contentType)
-        {
-            IHttpRequestSerialiser serialiser = _requestSerialisers.FirstOrDefault(o => o.ContentType == contentType);
-
-            if (serialiser == null)
-            {
-                throw new Exception("Unable to find matching request serialiser for content type: " + contentType);
-            }
-
-            return serialiser;
-        }
-
-        private IHttpResponseSerialiser GetResponseSerialiser(string acceptType)
-        {
-            IHttpResponseSerialiser serialiser = _responseDeserialisers.FirstOrDefault(o => o.AcceptType == acceptType);
-
-            if (serialiser == null)
-            {
-                throw new Exception("Unable to find matching response deserialiser for accept type: " + acceptType);
-            }
-
-            return serialiser;
+                City = "Cremorne",
+                Email = "daniel.ward@carsales.com.au",
+                FirstName = "Daniel",
+                LastName = "Ward",
+                Phone = "+61411222333",
+                PostCode = "3121",
+                ProfilePictureUrl = null,
+                State = "VIC"
+            };
         }
     }
 }
