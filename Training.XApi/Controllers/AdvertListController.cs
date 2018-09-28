@@ -2,7 +2,6 @@
 using System;
 using System.Threading.Tasks;
 using Training.XApi.Engine.Handlers.Queries.Adverts;
-using Training.XApi.Engine.Handlers.Queries.Members;
 using Training.XApi.Engine.Settings;
 using Training.XApi.Infrastructure.CQRS;
 using Training.XApi.UiFactories.Desktop;
