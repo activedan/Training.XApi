@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Training.XApi.Engine.Models.Adverts;
 using Training.XApi.Infrastructure.Http;
 using System.Net;
+using Training.XApi.Engine.Settings;
 
 namespace Training.XApi.Engine.Handlers.Queries.Adverts
 {
@@ -31,18 +32,21 @@ namespace Training.XApi.Engine.Handlers.Queries.Adverts
     {
         private IQueryDispatcher _queryDispatcher;
         private readonly IHttpClient _http;
+        private readonly string _advertApiUrl;
 
-        public AdvertsByMemberIdQueryHandler(IQueryDispatcher queryDispatcher, IHttpClient http)
+        public AdvertsByMemberIdQueryHandler(IQueryDispatcher queryDispatcher, IHttpClient http, ISettings settings)
         {
             _http = http;
             _queryDispatcher = queryDispatcher;
+            _advertApiUrl = settings.AdvertApiUrl;
         }
 
         public async Task<IEnumerable<Advert>> HandleAsync(AdvertsByMemberIdQuery query)
         {
             IEnumerable<Advert> advert = new List<Advert>();
 
-            var url = string.Format("", query.MemberId);
+            string url = $"{_advertApiUrl}/v2/adverts/{query.MemberId}";
+
             var request = HttpClientRequest.Get(url);
 
             var response = await _http.ExecuteAsync<List<Advert>>(request);

@@ -34,7 +34,6 @@ namespace Training.XApi.Engine.Handlers.Queries.Members
         public GetMemberQueryHandler(ISettings settings, IHttpClient http)
         {
             _http = http;
-
             _memberApiUrl = settings.MemberApiUrl;
         }
 
